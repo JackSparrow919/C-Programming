@@ -21,22 +21,22 @@ int forward(int,int);
 int main()
 {
 	int sock_server = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-	int optval=1;
-	setsockopt(sock_server,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval));
+//	int optval=1;
+//	setsockopt(sock_server,SOL_SOCKET,SO_REUSEADDR,&optval,sizeof(optval));
 	struct sockaddr_in serv_addr,dest_addr;
 	memset(&serv_addr,0,sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port=htons(8888);
+	serv_addr.sin_port=htons(1234);
 	serv_addr.sin_addr.s_addr=htonl(INADDR_ANY);
 	bind(sock_server,(struct sockaddr*)&serv_addr,sizeof(serv_addr));
 	listen(sock_server,10);
 	memset(&dest_addr,0,sizeof(dest_addr));
+	int len=sizeof(struct sockaddr_in);
 	while(1)
 	{
-		int len=sizeof(struct sockaddr_in);
 		int new=accept(sock_server,(struct sockaddr*)&dest_addr,&len);
-		len=1;
-		setsockopt(sock_server,SOL_TCP,TCP_NODELAY,&len,sizeof(int));
+//		len=1;
+//		setsockopt(sock_server,SOL_TCP,TCP_NODELAY,&len,sizeof(int));
 		int f;
 		if((f=fork())==0)
 			process(new);
@@ -62,6 +62,7 @@ int process(int new)
 	switch(atyp)
 	{
 		case 0x01:
+		{
 			char *ip_str=malloc(4);
 			read(new,ip_str,4);
 			char *ip=malloc(16);
@@ -76,13 +77,15 @@ int process(int new)
 			dest_addr.sin_addr.s_addr=inet_addr(ip);
 			connect(new_socket,(struct sockaddr*)&dest_addr,sizeof(dest_addr));
 			break;
+		}
 		case 0x03:
+		{
 			char *domain_len=malloc(1);
 			read(new_socket,domain_len,1);
 			char *domain=malloc((int)(*domain_len));
 			read(new_socket,domain,(int)(*domain_len));
 			struct hostent *destination=gethostbyname(domain);
-			struct in_addr *p=*(destination->h_addr_list);
+			struct in_addr *p=(struct in_addr*)*(destination->h_addr_list);
 			unsigned short p_port;
 			read(new,&p_port,2);
 			struct sockaddr_in destination_addr;
@@ -92,6 +95,7 @@ int process(int new)
 			destination_addr.sin_addr=*p;
 			connect(new_socket,(struct sockaddr*)&destination_addr,sizeof(destination_addr));
 			break;
+		}
 	}
 	buf[0]=0x05;
 	buf[1]=buf[2]=0x00;
